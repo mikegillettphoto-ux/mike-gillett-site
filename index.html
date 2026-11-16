@@ -46,6 +46,8 @@ figure img{display:block;width:100%;height:auto;background:var(--raised)}
 
 .lb{position:fixed;inset:0;z-index:20;background:rgba(8,8,8,.96);display:flex;align-items:center;justify-content:center;padding:max(48px,env(safe-area-inset-top,0px)) 16px max(48px,env(safe-area-inset-bottom,0px))}
 .lb img{max-width:100%;max-height:100%;object-fit:contain}
+.lb video{max-width:100%;max-height:100%;display:block;background:#000}
+figure[style*="cursor:default"]{cursor:zoom-in!important}
 .lb button{position:absolute;background:none;border:0;color:#ece8df;font:inherit;font-size:14px;cursor:pointer;padding:14px}
 .lb .x{top:max(4px,env(safe-area-inset-top,0px));right:4px}
 .lb .p{left:0;top:50%;transform:translateY(-50%)} .lb .n{right:0;top:50%;transform:translateY(-50%)}
@@ -76,7 +78,7 @@ figure img{display:block;width:100%;height:auto;background:var(--raised)}
 </div>
 
 <div class="lb" id="lb" hidden role="dialog" aria-modal="true" aria-label="Photo viewer">
-  <img id="lbimg" alt="">
+  <img id="lbimg" alt=""><video id="lbvid" controls playsinline loop hidden></video>
   <button class="x" id="lbx" type="button">Close</button>
   <button class="p" id="lbp" type="button" aria-label="Previous">←</button>
   <button class="n" id="lbn" type="button" aria-label="Next">→</button>
@@ -84,10 +86,13 @@ figure img{display:block;width:100%;height:auto;background:var(--raised)}
 
 <script>
 (function(){
-  var figs=[].slice.call(document.querySelectorAll('figure')).filter(function(f){return f.querySelector('img')}),i=0,lb=document.getElementById('lb'),im=document.getElementById('lbimg'),last=null;
-  function show(k){i=(k+figs.length)%figs.length;var s=figs[i].querySelector('img');im.src=s.src;im.alt=s.alt;}
+  var figs=[].slice.call(document.querySelectorAll('figure')).filter(function(f){return f.querySelector('img,video')}),i=0,lb=document.getElementById('lb'),im=document.getElementById('lbimg'),vd=document.getElementById('lbvid'),last=null;
+  function stopv(){vd.pause();vd.removeAttribute('src');vd.removeAttribute('poster');vd.load();}
+  function show(k){i=(k+figs.length)%figs.length;var f=figs[i],v=f.querySelector('video'),s=f.querySelector('img');
+    if(v){im.hidden=true;vd.hidden=false;vd.poster=v.getAttribute('poster')||'';vd.src=v.getAttribute('src');vd.muted=false;var p=vd.play();if(p&&p.catch)p.catch(function(){vd.muted=true;vd.play()})}
+    else{stopv();vd.hidden=true;im.hidden=false;im.src=s.src;im.alt=s.alt}}
   function open(k){last=document.activeElement;show(k);lb.hidden=false;document.body.style.overflow='hidden';document.getElementById('lbx').focus();}
-  function close(){lb.hidden=true;document.body.style.overflow='';if(last)last.focus();}
+  function close(){stopv();lb.hidden=true;document.body.style.overflow='';if(last)last.focus();}
   figs.forEach(function(f,k){f.tabIndex=0;f.addEventListener('click',function(){open(k)});f.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open(k)}})});
   document.getElementById('lbx').onclick=close;
   document.getElementById('lbp').onclick=function(e){e.stopPropagation();show(i-1)};
