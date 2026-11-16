@@ -38,7 +38,10 @@ h2{font-size:13px;font-weight:500;color:var(--muted);margin:0 0 14px}
 .row{display:flex;gap:var(--gap);margin-bottom:var(--gap)}
 figure{margin:0;min-width:0;cursor:zoom-in}
 figure img{display:block;width:100%;height:auto;background:var(--raised)}
-@media (max-width:720px){.row{flex-direction:column}.row figure{flex:none!important}}
+/* no gaps between photos: overlap neighbours by 1px so browser rounding can never leave a hairline */
+.row+.row{margin-top:-1px}
+.row figure+figure{margin-left:-1px}
+@media (max-width:720px){.row{flex-direction:column}.row figure{flex:none!important}.row figure+figure{margin-left:0;margin-top:-1px}}
 
 .contact{display:flex;flex-wrap:wrap;gap:8px 32px;border-top:1px solid var(--line);padding-top:16px}
 .contact a{text-decoration:none}
