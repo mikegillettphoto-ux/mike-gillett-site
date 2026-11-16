@@ -138,9 +138,7 @@ textarea{resize:vertical}
       <a class="btn ghost" id="card" href="#" target="_blank" rel="noopener" hidden>Pay by card</a>
     </div>
     <div class="sent" id="sent" hidden>
-      <div><b>Quote downloaded.</b> To lock in your dates, pay by bank transfer and use <b id="ref"></b> as the reference.</div>
-      <div class="iban"><code id="ibantxt"></code><button type="button" id="copy">Copy</button></div>
-      <div>Then send the booking on WhatsApp so I can confirm.</div>
+      <div><b>Quote downloaded.</b> Send your booking to me on WhatsApp with quote number <b id="ref"></b> and I'll confirm and send the payment details to lock in your dates.</div>
     </div>
     <p class="note">This is a quote. An official invoice (factura) follows once payment is in. Prices in euros. Paid in full before the job. Free cancellation up to 14 days before; within 7 days 50% is kept; within 48 hours no refund.</p>
   </section>
@@ -152,7 +150,7 @@ textarea{resize:vertical}
 <script>
 // ---- Settings Mike can change ----
 var SETTINGS = {
-  iban: "ES18 0182 5326 0302 0698 8074",
+  iban: "",
   ibanHolder: "",     // account holder name, shown on the quote
   payLink: "",        // card payment link (Stripe / Revolut / PayPal). Leave empty to hide the card button.
   whatsapp: "34610050195",
@@ -254,11 +252,6 @@ function check(forPdf){
 
 $("wa").addEventListener("click", function(e){ if (!check(false)) e.preventDefault(); });
 
-$("copy").addEventListener("click", function(){
-  var t = SETTINGS.iban.replace(/\s/g, "");
-  if (navigator.clipboard) navigator.clipboard.writeText(t).then(function(){ $("copy").textContent = "Copied"; });
-});
-
 $("dl").addEventListener("click", function(){
   if (!check(true)) return;
   var p = client(), c = compute(), err = $("err");
@@ -309,7 +302,7 @@ $("dl").addEventListener("click", function(){
   });
   try {
     doc.save("Mike-Gillett-Quote-" + quoteNo + ".pdf");
-    $("ref").textContent = quoteNo; $("ibantxt").textContent = SETTINGS.iban; $("sent").hidden = !SETTINGS.iban;
+    $("ref").textContent = quoteNo; $("sent").hidden = false;
     $("dl").classList.remove("primary"); $("dl").classList.add("ghost"); $("dl").textContent = "Download again";
   } catch (e) { err.textContent = "The download didn't go through. Try again."; err.hidden = false; }
 });
