@@ -13,7 +13,7 @@
 :root{
   --ground:#ffffff; --ink:#111111; --muted:#757575; --line:#e6e6e6; --raised:#f0f0f0;
   --body:"Instrument Sans","Helvetica Neue",Arial,sans-serif;
-  --gap:clamp(10px,1.8vw,28px);
+  --gap:0px;
   color-scheme:light;
 }
 
@@ -23,7 +23,7 @@ body{background:var(--ground);color:var(--ink);font-family:var(--body);font-size
 a{color:inherit}
 a:focus-visible,figure:focus-visible,button:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 
-header{padding:28px var(--gap) 36px;line-height:1.5}
+header{padding:28px clamp(10px,1.8vw,28px) 36px;line-height:1.5}
 h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
 header p{margin:0;color:var(--muted)}
 header .links{margin-top:20px;display:flex;flex-direction:column;align-items:flex-start}
