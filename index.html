@@ -102,8 +102,8 @@ figure[style*="cursor:default"]{cursor:zoom-in!important}
   document.getElementById('lbn').onclick=function(e){e.stopPropagation();show(i+1)};
   lb.addEventListener('click',function(e){if(e.target===lb)close()});
   document.addEventListener('keydown',function(e){if(lb.hidden)return;if(e.key==='Escape')close();if(e.key==='ArrowLeft')show(i-1);if(e.key==='ArrowRight')show(i+1)});
-  var sx=null;lb.addEventListener('touchstart',function(e){sx=e.touches[0].clientX},{passive:true});
-  lb.addEventListener('touchend',function(e){if(sx===null)return;var d=e.changedTouches[0].clientX-sx;if(Math.abs(d)>50)show(d<0?i+1:i-1);sx=null});
+  var sx=null,sy=null;lb.addEventListener('touchstart',function(e){if(e.target===vd&&vd.controls){sx=null;return}sx=e.touches[0].clientX;sy=e.touches[0].clientY},{passive:true});
+  lb.addEventListener('touchend',function(e){if(sx===null)return;var d=e.changedTouches[0].clientX-sx,v=e.changedTouches[0].clientY-sy;sx=null;if(Math.abs(v)>60&&Math.abs(v)>Math.abs(d)){close();return}if(Math.abs(d)>50)show(d<0?i+1:i-1)});
 })();
 </script>
 
