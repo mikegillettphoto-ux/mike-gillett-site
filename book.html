@@ -19,15 +19,22 @@ a{color:inherit}
 :focus-visible{outline:2px solid var(--ink);outline-offset:3px}
 [hidden]{display:none!important}
 
-header{padding-block:28px 12px;line-height:1.5}
-h1{font-size:20px;font-weight:600;margin:0;letter-spacing:-.01em}
-header p{margin:0;color:var(--muted)}
-.links{margin-top:20px;display:flex;flex-direction:column;align-items:flex-start}
+.wrap{max-width:1080px;margin:0 auto}
+header.top{display:flex;justify-content:space-between;align-items:center;gap:12px 32px;flex-wrap:wrap;padding-block:22px;border-bottom:1px solid var(--line)}
+.nm{font-weight:600;font-size:16px;letter-spacing:-.01em}
+.role{color:var(--muted);font-size:14px}
+.links{display:flex;gap:6px 24px;flex-wrap:wrap;align-items:center;color:var(--muted);font-size:14px}
 .links a{color:var(--muted);text-decoration:none}
 .links a:hover{color:var(--ink)}
-
-main{max-width:640px}
-h2{font-size:13px;font-weight:500;color:var(--muted);margin:36px 0 12px}
+.intro{padding-block:44px 4px;max-width:60ch}
+h1{font-size:clamp(26px,4vw,38px);font-weight:600;margin:0 0 10px;letter-spacing:-.02em;line-height:1.12}
+.lede{margin:0;color:var(--muted);font-size:16px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr);gap:0 64px;align-items:start}
+@media (min-width:900px){.grid{grid-template-columns:minmax(0,1fr) 380px}aside{position:sticky;top:24px;margin-top:36px}}
+main{counter-reset:step}
+.foot{display:flex;gap:8px 24px;flex-wrap:wrap;border-top:1px solid var(--line);margin-top:56px;padding-block:20px;color:var(--muted);font-size:13px}
+h2{counter-increment:step;font-size:15px;font-weight:600;color:var(--ink);margin:36px 0 12px;display:flex;gap:10px;align-items:center}
+h2::before{content:counter(step);color:var(--muted);font-weight:500;font-variant-numeric:tabular-nums;border:1px solid var(--line);width:24px;height:24px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;font-size:12px;flex:none}
 .hint{color:var(--muted);font-size:14px;margin:0 0 12px}
 
 .item{border:1px solid var(--line);padding:16px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:10px}
@@ -57,7 +64,10 @@ textarea{resize:vertical}
 .mode span{display:block;padding:12px;font-weight:600}
 .mode input:checked+span{background:var(--ink);color:var(--ground)}
 .mode input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
-.summary{border-top:1px solid var(--ink);padding-top:16px;margin-top:36px}
+.check{display:flex;gap:10px;align-items:flex-start;margin:4px 0 0;cursor:pointer;font-size:14px;color:var(--muted)}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--ink);flex:none}
+.who.nosub small{display:none}
+.summary{border:1px solid var(--ink);padding:24px;background:var(--raised)}
 .no{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .lines{display:flex;flex-direction:column;gap:6px;margin:12px 0}
 .l{display:flex;justify-content:space-between;gap:12px}
@@ -82,19 +92,21 @@ textarea{resize:vertical}
 .dock b{font-size:22px;font-variant-numeric:tabular-nums}
 .dock a{font-weight:600;text-decoration:none;border:1px solid var(--ink);padding:8px 14px}
 @media (min-width:721px){.dock{display:none}body{padding-bottom:64px}}
-@media (max-width:720px){header{text-align:center}.links{align-items:center}main{max-width:none}}
+@media (max-width:720px){header.top{flex-direction:column;text-align:center}.links{justify-content:center}.intro{text-align:center;margin-inline:auto}.foot{justify-content:center;text-align:center}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Book Mike Gillett</h1>
-  <p>Street and sports photographer</p>
-  <p>Barcelona</p>
-  <div class="links">
-    <a href="index.html">Back to portfolio</a>
-  </div>
+<div class="wrap">
+<header class="top">
+  <div><div class="nm">Mike Gillett</div><div class="role">Street and sports photographer, Barcelona</div></div>
+  <nav class="links" aria-label="Site"><a href="index.html">Portfolio</a><a href="https://www.instagram.com/user_18e982471a/" target="_blank" rel="noopener">Instagram</a><span>+34 610 050 195</span></nav>
 </header>
+<div class="intro">
+  <h1>Book Mike Gillett</h1>
+  <p class="lede">Book a half day or a full day, or pay an amount. You get a quote to download and keep, and an official invoice (factura) follows payment.</p>
+</div>
 
+<div class="grid">
 <main>
   <div class="mode" role="radiogroup" aria-label="What would you like to do">
     <label><input type="radio" name="mode" value="book" checked><span>Book a day</span></label>
@@ -121,12 +133,7 @@ textarea{resize:vertical}
     <label class="field wide">Notes<textarea id="c-notes" rows="4" placeholder="What you need, who it's for, anything I should know."></textarea></label>
   </div>
 
-  <h2>Who is booking</h2>
-  <fieldset class="who" id="who">
-    <label><input type="radio" name="who" value="biz" checked><span>A business in Spain<small>IVA 21% added, IRPF 15% withheld.</small></span></label>
-    <label><input type="radio" name="who" value="person"><span>A private person in Spain<small>IVA 21% added.</small></span></label>
-    <label><input type="radio" name="who" value="noneu"><span>A business outside the EU<small>No IVA charged.</small></span></label>
-  </fieldset>
+
 
   </div>
 
@@ -137,7 +144,15 @@ textarea{resize:vertical}
       <label class="field">Amount in euros<input id="c-amt" type="text" inputmode="decimal" placeholder="e.g. 250"></label>
       <label class="field">What it's for<input id="c-for" type="text" placeholder="e.g. deposit, invoice number"></label>
     </div>
+    <label class="check"><input type="checkbox" id="c-addtax"><span>This amount is before tax. Add IVA and withhold IRPF where they apply, based on who is paying below.</span></label>
   </div>
+
+  <h2 id="h-who">Who is booking</h2>
+  <fieldset class="who" id="who">
+    <label><input type="radio" name="who" value="biz" checked><span>A business in Spain<small>IVA 21% added, IRPF 15% withheld.</small></span></label>
+    <label><input type="radio" name="who" value="person"><span>A private person in Spain<small>IVA 21% added.</small></span></label>
+    <label><input type="radio" name="who" value="noneu"><span>A business outside the EU<small>No IVA charged.</small></span></label>
+  </fieldset>
 
   <h2>Your details</h2>
   <p class="hint" id="inv-hint">Who the invoice is made out to. Needed to download your quote.</p>
@@ -149,7 +164,9 @@ textarea{resize:vertical}
     <label class="field wide">Billing address<input id="c-addr" type="text" autocomplete="street-address" placeholder="Street, number, postcode, city"></label>
   </div>
 
-  <section class="summary" id="summary" aria-labelledby="h-quote">
+</main>
+<aside>
+<section class="summary" id="summary" aria-labelledby="h-quote">
     <div><b id="h-quote">Your quote</b> <span class="no" id="qno"></span></div>
     <div class="lines" id="lines"></div>
     <div class="lines" id="tax"></div>
@@ -165,7 +182,11 @@ textarea{resize:vertical}
     </div>
     <p class="note">This is a quote. An official invoice (factura) follows once payment is in. Prices in euros. Paid in full before the job. Free cancellation up to 14 days before; within 7 days 50% is kept; within 48 hours no refund.</p>
   </section>
-</main>
+</aside>
+</div>
+
+<footer class="foot"><span>Mike Gillett</span><span>Barcelona</span><span>+34 610 050 195</span><span>mike-gillett.com</span></footer>
+</div>
 
 <div class="dock"><div>Due now <b id="dock-due">€0</b></div><a href="#summary">See quote</a></div>
 
@@ -208,6 +229,7 @@ document.querySelectorAll("input[name=mode]").forEach(function(r){
 document.querySelectorAll("input[name=who]").forEach(function(r){
   r.addEventListener("change", function(){ state.who = r.value; render(); });
 });
+$("c-addtax").addEventListener("change", function(){ render(); });
 ["c-name","c-biz","c-email","c-nif","c-addr","c-dates","c-loc","c-notes","c-amt","c-for"].forEach(function(id){
   $(id).addEventListener("input", function(){ $("err").hidden = true; render(); });
 });
@@ -224,8 +246,9 @@ function amount(){
 
 function compute(){
   if (state.mode === "pay"){
-    var a = amount(), f = $("c-for").value.trim();
-    return {lines: a ? [["Payment" + (f ? ": " + f : ""), a]] : [], net: a, iva: 0, irpf: 0, due: a, pay: true};
+    var a = amount(), f = $("c-for").value.trim(), taxed = $("c-addtax").checked;
+    var iv = taxed && state.who !== "noneu" ? a * SETTINGS.ivaRate : 0, ir = taxed && state.who === "biz" ? a * SETTINGS.irpfRate : 0;
+    return {lines: a ? [["Payment" + (f ? ": " + f : ""), a]] : [], net: a, iva: iv, irpf: ir, due: a + iv - ir, pay: true, taxed: taxed};
   }
   var lines = [];
   if (state.half) lines.push(["Half day × " + state.half, PRICES.half * state.half]);
@@ -251,13 +274,16 @@ function waText(c, p){
   if (state.mode !== "pay" && p.dates) t.push("Date(s): " + p.dates);
   if (state.mode !== "pay" && p.loc) t.push("Where: " + p.loc);
   if (p.notes) t.push("Notes: " + p.notes);
+  t.push("Client type: " + ({biz: "Business in Spain", person: "Private person in Spain", noneu: "Business outside the EU"})[state.who]);
   if (p.name) t.push("", p.name + (p.biz ? ", " + p.biz : ""));
   return t.join("\n");
 }
 
 function render(){
+  $("h-who").textContent = state.mode === "pay" ? "Who is paying" : "Who is booking";
+  $("who").classList.toggle("nosub", state.mode === "pay" && !$("c-addtax").checked);
   $("sec-book").hidden = state.mode === "pay"; $("sec-pay").hidden = state.mode !== "pay";
-  $("inv-hint").textContent = state.mode === "pay" ? "Name and email are needed. Add the rest if you need an invoice (factura)." : "Who the invoice is made out to. Needed to download your quote.";
+  $("inv-hint").textContent = state.mode === "pay" ? "Name and email are needed. For an invoice (factura), add your address too; businesses also need a business name and tax ID." : "Who the invoice is made out to. Needed to download your quote.";
   $("wa").textContent = state.mode === "pay" ? "Send this payment to Mike on WhatsApp" : "Send my booking to Mike on WhatsApp";
   if (!downloadedOnce) $("dl").textContent = state.mode === "pay" ? "Download payment request (PDF)" : "Download quote (PDF)";
   $("q-half").textContent = state.half; $("q-full").textContent = state.full;
@@ -266,7 +292,7 @@ function render(){
   var L = $("lines"); L.textContent = "";
   if (!c.lines.length) row(L, state.mode === "pay" ? "Enter an amount above to see your payment." : "Pick a half day or a full day above to start your quote.", undefined, "l empty");
   c.lines.forEach(function(l){ row(L, l[0], eur(l[1])); });
-  var T = $("tax"); T.textContent = ""; T.hidden = !!c.pay;
+  var T = $("tax"); T.textContent = ""; T.hidden = !!c.pay && !c.taxed;
   row(T, "Subtotal", eur(c.net));
   row(T, state.who === "noneu" ? "IVA (not applicable, outside EU)" : "IVA 21%", "+" + eur(c.iva));
   if (state.who === "biz") row(T, "IRPF 15% withheld", "−" + eur(c.irpf));
@@ -281,7 +307,7 @@ function check(forPdf){
   var p = client(), c = compute(), err = $("err"), need = [];
   if (!c.net){ err.textContent = state.mode === "pay" ? "Enter an amount to pay first." : "Pick a half day or a full day first."; err.hidden = false; return false; }
   need.push(["c-name", p.name, "your name"]);
-  if (forPdf && state.mode === "pay") need.push(["c-email", p.email, "your email"], ["c-for", $("c-for").value.trim(), "what the payment is for"]);
+  if (forPdf && state.mode === "pay"){ need.push(["c-email", p.email, "your email"], ["c-for", $("c-for").value.trim(), "what the payment is for"]); if (state.who !== "person") need.push(["c-biz", p.biz, "your business name"], ["c-nif", p.nif, state.who === "noneu" ? "your company tax ID" : "your NIF / CIF"]); }
   else if (forPdf){
     need.push(["c-email", p.email, "your email"], ["c-addr", p.addr, "your billing address"]);
     if (state.who !== "person") need.push(["c-biz", p.biz, "your business name"], ["c-nif", p.nif, state.who === "noneu" ? "your company tax ID" : "your NIF / CIF"]);
@@ -321,10 +347,10 @@ $("dl").addEventListener("click", function(){
   y += 3;
   doc.setDrawColor(17, 17, 17); doc.line(110, y, W - M, y); y += 7;
   var tl = function(a, b, bold){ doc.setFont("helvetica", bold ? "bold" : "normal"); doc.text(a, 110, y); doc.text(b, W - M, y, {align: "right"}); y += 7; };
-  if (!c.pay){ tl("Subtotal", eurPdf(c.net)); tl(state.who === "noneu" ? "IVA not applicable" : "IVA 21%", "+ " + eurPdf(c.iva));
+  if (!c.pay || c.taxed){ tl("Subtotal", eurPdf(c.net)); tl(state.who === "noneu" ? "IVA not applicable" : "IVA 21%", "+ " + eurPdf(c.iva));
   if (state.who === "biz") tl("IRPF 15% withheld", "- " + eurPdf(c.irpf)); }
   doc.setFontSize(13); tl("Due now", eurPdf(c.due), true); doc.setFontSize(10);
-  if (!c.pay && state.who === "noneu"){ doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90); doc.text("Service to a business established outside the EU: not subject to Spanish IVA.", M, y + 2); y += 7; doc.setTextColor(17, 17, 17); doc.setFontSize(10); }
+  if ((!c.pay || c.taxed) && state.who === "noneu"){ doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90); doc.text("Service to a business established outside the EU: not subject to Spanish IVA.", M, y + 2); y += 7; doc.setTextColor(17, 17, 17); doc.setFontSize(10); }
   var job = [];
   if (state.mode !== "pay" && p.dates) job.push("Date(s): " + p.dates); if (state.mode !== "pay" && p.loc) job.push("Where: " + p.loc); if (p.notes) job.push("Notes: " + p.notes);
   if (job.length){
