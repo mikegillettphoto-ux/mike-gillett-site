@@ -176,6 +176,7 @@ textarea{resize:vertical}
       <button class="btn primary" id="dl" type="button">Download quote (PDF)</button>
       <a class="btn ghost" id="wa" href="#" target="_blank" rel="noopener">Send my booking to Mike on WhatsApp</a>
       <a class="btn ghost" id="card" href="#" target="_blank" rel="noopener" hidden>Pay by card</a>
+      <p class="note" id="card-hint" hidden style="margin:0"></p>
     </div>
     <div class="sent" id="sent" hidden>
       <div><b>Downloaded.</b> Send it to me on WhatsApp with reference <b id="ref"></b> and I'll confirm and send the payment details.</div>
@@ -196,8 +197,8 @@ textarea{resize:vertical}
 var SETTINGS = {
   iban: "",
   ibanHolder: "",     // account holder name, shown on the quote
-  payLink: "",        // card payment link (Stripe / Revolut / PayPal). Leave empty to hide the card button.
-  payAmountLink: "",  // online link for paying an amount, e.g. "https://paypal.me/YOURNAME/{amount}EUR". {amount} is replaced with the amount. Leave empty to hide the button.
+  payLink: "https://buy.stripe.com/bJefZh2oA4Xl2c7bQheUU00",        // card payment link (Stripe / Revolut / PayPal). Leave empty to hide the card button.
+  payAmountLink: "https://buy.stripe.com/bJefZh2oA4Xl2c7bQheUU00",  // online link for paying an amount, e.g. "https://paypal.me/YOURNAME/{amount}EUR". {amount} is replaced with the amount. Leave empty to hide the button.
   whatsapp: "34610050195",
   irpfRate: 0.15,
   ivaRate: 0.21
@@ -298,9 +299,13 @@ function render(){
   if (state.who === "biz") row(T, "IRPF 15% withheld", "−" + eur(c.irpf));
   $("due").textContent = eur(c.due); $("dock-due").textContent = eur(c.due);
   $("wa").href = "https://wa.me/" + SETTINGS.whatsapp + "?text=" + encodeURIComponent(waText(c, p));
-  var link = state.mode === "pay" ? (SETTINGS.payAmountLink && c.net ? SETTINGS.payAmountLink.replace("{amount}", String(c.net)) : "") : SETTINGS.payLink;
-  $("card").hidden = !link;
-  if (link){ $("card").href = link; $("card").textContent = state.mode === "pay" ? "Pay " + eur(c.net) + " online" : "Pay by card"; }
+  var base = state.mode === "pay" ? SETTINGS.payAmountLink : SETTINGS.payLink;
+  var ok = !!base && c.due >= 10 && c.due <= 10000;
+  $("card").hidden = !ok; $("card-hint").hidden = !ok;
+  if (ok){
+    $("card").href = base.replace("{amount}", String(c.due)); $("card").textContent = "Pay " + eur(c.due) + " by card";
+    $("card-hint").textContent = "At checkout, enter " + eur(c.due) + " as the amount and what it's for. Businesses can add their tax ID.";
+  }
 }
 
 function check(forPdf){
