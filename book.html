@@ -51,6 +51,12 @@ textarea{resize:vertical}
 .who input{margin-top:4px;width:18px;height:18px;accent-color:var(--ink)}
 .who small{display:block;color:var(--muted);font-size:13px}
 
+.mode{display:flex;border:1px solid var(--ink);margin:20px 0 0}
+.mode label{flex:1;text-align:center;cursor:pointer;position:relative}
+.mode input{position:absolute;opacity:0;pointer-events:none}
+.mode span{display:block;padding:12px;font-weight:600}
+.mode input:checked+span{background:var(--ink);color:var(--ground)}
+.mode input:focus-visible+span{outline:2px solid var(--ink);outline-offset:2px}
 .summary{border-top:1px solid var(--ink);padding-top:16px;margin-top:36px}
 .no{color:var(--muted);font-size:13px;font-variant-numeric:tabular-nums}
 .lines{display:flex;flex-direction:column;gap:6px;margin:12px 0}
@@ -90,6 +96,12 @@ textarea{resize:vertical}
 </header>
 
 <main>
+  <div class="mode" role="radiogroup" aria-label="What would you like to do">
+    <label><input type="radio" name="mode" value="book" checked><span>Book a day</span></label>
+    <label><input type="radio" name="mode" value="pay"><span>Pay an amount</span></label>
+  </div>
+
+  <div id="sec-book">
   <h2>Pick your day</h2>
   <p class="hint">You're booking my time for a shoot, an event or anything in between. Photo and video.</p>
 
@@ -116,8 +128,19 @@ textarea{resize:vertical}
     <label><input type="radio" name="who" value="noneu"><span>A business outside the EU<small>No IVA charged.</small></span></label>
   </fieldset>
 
-  <h2>Invoice details</h2>
-  <p class="hint">Who the invoice is made out to. Needed to download your quote.</p>
+  </div>
+
+  <div id="sec-pay" hidden>
+    <h2>Pay an amount</h2>
+    <p class="hint">A deposit, an invoice we've agreed, or any amount you want to send me.</p>
+    <div class="fields">
+      <label class="field">Amount in euros<input id="c-amt" type="text" inputmode="decimal" placeholder="e.g. 250"></label>
+      <label class="field">What it's for<input id="c-for" type="text" placeholder="e.g. deposit, invoice number"></label>
+    </div>
+  </div>
+
+  <h2>Your details</h2>
+  <p class="hint" id="inv-hint">Who the invoice is made out to. Needed to download your quote.</p>
   <div class="fields">
     <label class="field">Name<input id="c-name" type="text" autocomplete="name" placeholder="Your name"></label>
     <label class="field">Business<input id="c-biz" type="text" autocomplete="organization" placeholder="Business name"></label>
@@ -138,7 +161,7 @@ textarea{resize:vertical}
       <a class="btn ghost" id="card" href="#" target="_blank" rel="noopener" hidden>Pay by card</a>
     </div>
     <div class="sent" id="sent" hidden>
-      <div><b>Quote downloaded.</b> Send your booking to me on WhatsApp with quote number <b id="ref"></b> and I'll confirm and send the payment details to lock in your dates.</div>
+      <div><b>Downloaded.</b> Send it to me on WhatsApp with reference <b id="ref"></b> and I'll confirm and send the payment details.</div>
     </div>
     <p class="note">This is a quote. An official invoice (factura) follows once payment is in. Prices in euros. Paid in full before the job. Free cancellation up to 14 days before; within 7 days 50% is kept; within 48 hours no refund.</p>
   </section>
@@ -153,14 +176,16 @@ var SETTINGS = {
   iban: "",
   ibanHolder: "",     // account holder name, shown on the quote
   payLink: "",        // card payment link (Stripe / Revolut / PayPal). Leave empty to hide the card button.
+  payAmountLink: "",  // online link for paying an amount, e.g. "https://paypal.me/YOURNAME/{amount}EUR". {amount} is replaced with the amount. Leave empty to hide the button.
   whatsapp: "34610050195",
   irpfRate: 0.15,
   ivaRate: 0.21
 };
 var PRICES = {half: 500, full: 850};
-var state = {half: 0, full: 0, who: "biz"};
+var state = {half: 0, full: 0, who: "biz", mode: "book"};
+var downloadedOnce = false;
 
-var eur = function(n){ return "€" + Math.round(n).toLocaleString("en-GB"); };
+var eur = function(n){ n = Math.round(n * 100) / 100; return "€" + (Number.isInteger(n) ? n.toLocaleString("en-GB") : n.toLocaleString("en-GB", {minimumFractionDigits: 2, maximumFractionDigits: 2})); };
 var eurPdf = function(n){ return "EUR " + n.toLocaleString("en-GB", {minimumFractionDigits: 2, maximumFractionDigits: 2}); };
 var $ = function(id){ return document.getElementById(id); };
 
@@ -177,10 +202,13 @@ document.querySelectorAll("[data-q]").forEach(function(b){
     render();
   });
 });
+document.querySelectorAll("input[name=mode]").forEach(function(r){
+  r.addEventListener("change", function(){ state.mode = r.value; $("err").hidden = true; render(); });
+});
 document.querySelectorAll("input[name=who]").forEach(function(r){
   r.addEventListener("change", function(){ state.who = r.value; render(); });
 });
-["c-name","c-biz","c-email","c-nif","c-addr","c-dates","c-loc","c-notes"].forEach(function(id){
+["c-name","c-biz","c-email","c-nif","c-addr","c-dates","c-loc","c-notes","c-amt","c-for"].forEach(function(id){
   $(id).addEventListener("input", function(){ $("err").hidden = true; render(); });
 });
 
@@ -189,7 +217,16 @@ function client(){
           addr: $("c-addr").value.trim(), dates: $("c-dates").value.trim(), loc: $("c-loc").value.trim(), notes: $("c-notes").value.trim()};
 }
 
+function amount(){
+  var v = parseFloat(String($("c-amt").value).replace(/[€\s]/g, "").replace(",", "."));
+  return isFinite(v) && v > 0 ? Math.round(Math.min(v, 100000) * 100) / 100 : 0;
+}
+
 function compute(){
+  if (state.mode === "pay"){
+    var a = amount(), f = $("c-for").value.trim();
+    return {lines: a ? [["Payment" + (f ? ": " + f : ""), a]] : [], net: a, iva: 0, irpf: 0, due: a, pay: true};
+  }
   var lines = [];
   if (state.half) lines.push(["Half day × " + state.half, PRICES.half * state.half]);
   if (state.full) lines.push(["Full day × " + state.full, PRICES.full * state.full]);
@@ -208,43 +245,50 @@ function row(parent, a, b, cls){
 }
 
 function waText(c, p){
-  var t = ["Hi Mike, I'd like to book you.", ""];
+  var t = [state.mode === "pay" ? "Hi Mike, I'd like to pay you." : "Hi Mike, I'd like to book you.", ""];
   c.lines.forEach(function(l){ t.push(l[0] + ": " + eur(l[1])); });
   t.push("Total due now: " + eur(c.due) + " (quote " + quoteNo + ")");
-  if (p.dates) t.push("Date(s): " + p.dates);
-  if (p.loc) t.push("Where: " + p.loc);
+  if (state.mode !== "pay" && p.dates) t.push("Date(s): " + p.dates);
+  if (state.mode !== "pay" && p.loc) t.push("Where: " + p.loc);
   if (p.notes) t.push("Notes: " + p.notes);
   if (p.name) t.push("", p.name + (p.biz ? ", " + p.biz : ""));
   return t.join("\n");
 }
 
 function render(){
+  $("sec-book").hidden = state.mode === "pay"; $("sec-pay").hidden = state.mode !== "pay";
+  $("inv-hint").textContent = state.mode === "pay" ? "Name and email are needed. Add the rest if you need an invoice (factura)." : "Who the invoice is made out to. Needed to download your quote.";
+  $("wa").textContent = state.mode === "pay" ? "Send this payment to Mike on WhatsApp" : "Send my booking to Mike on WhatsApp";
+  if (!downloadedOnce) $("dl").textContent = state.mode === "pay" ? "Download payment request (PDF)" : "Download quote (PDF)";
   $("q-half").textContent = state.half; $("q-full").textContent = state.full;
   $("it-half").classList.toggle("on", state.half > 0); $("it-full").classList.toggle("on", state.full > 0);
   var c = compute(), p = client();
   var L = $("lines"); L.textContent = "";
-  if (!c.lines.length) row(L, "Pick a half day or a full day above to start your quote.", undefined, "l empty");
+  if (!c.lines.length) row(L, state.mode === "pay" ? "Enter an amount above to see your payment." : "Pick a half day or a full day above to start your quote.", undefined, "l empty");
   c.lines.forEach(function(l){ row(L, l[0], eur(l[1])); });
-  var T = $("tax"); T.textContent = "";
+  var T = $("tax"); T.textContent = ""; T.hidden = !!c.pay;
   row(T, "Subtotal", eur(c.net));
   row(T, state.who === "noneu" ? "IVA (not applicable, outside EU)" : "IVA 21%", "+" + eur(c.iva));
   if (state.who === "biz") row(T, "IRPF 15% withheld", "−" + eur(c.irpf));
   $("due").textContent = eur(c.due); $("dock-due").textContent = eur(c.due);
   $("wa").href = "https://wa.me/" + SETTINGS.whatsapp + "?text=" + encodeURIComponent(waText(c, p));
-  if (SETTINGS.payLink){ $("card").hidden = false; $("card").href = SETTINGS.payLink; }
+  var link = state.mode === "pay" ? (SETTINGS.payAmountLink && c.net ? SETTINGS.payAmountLink.replace("{amount}", String(c.net)) : "") : SETTINGS.payLink;
+  $("card").hidden = !link;
+  if (link){ $("card").href = link; $("card").textContent = state.mode === "pay" ? "Pay " + eur(c.net) + " online" : "Pay by card"; }
 }
 
 function check(forPdf){
   var p = client(), c = compute(), err = $("err"), need = [];
-  if (!c.net){ err.textContent = "Pick a half day or a full day first."; err.hidden = false; return false; }
+  if (!c.net){ err.textContent = state.mode === "pay" ? "Enter an amount to pay first." : "Pick a half day or a full day first."; err.hidden = false; return false; }
   need.push(["c-name", p.name, "your name"]);
-  if (forPdf){
+  if (forPdf && state.mode === "pay") need.push(["c-email", p.email, "your email"], ["c-for", $("c-for").value.trim(), "what the payment is for"]);
+  else if (forPdf){
     need.push(["c-email", p.email, "your email"], ["c-addr", p.addr, "your billing address"]);
     if (state.who !== "person") need.push(["c-biz", p.biz, "your business name"], ["c-nif", p.nif, state.who === "noneu" ? "your company tax ID" : "your NIF / CIF"]);
   }
   var miss = need.filter(function(n){ return !n[1]; });
   if (miss.length){
-    err.textContent = "Add " + miss.map(function(n){ return n[2]; }).join(", ") + (forPdf ? " so the invoice can be made out to you." : " so I know who the booking is from.");
+    err.textContent = "Add " + miss.map(function(n){ return n[2]; }).join(", ") + (forPdf ? (state.mode === "pay" ? "." : " so the invoice can be made out to you.") : " so I know who it is from.");
     err.hidden = false; $(miss[0][0]).focus(); return false;
   }
   err.hidden = true; return true;
@@ -260,7 +304,7 @@ $("dl").addEventListener("click", function(){
   var W = 210, M = 20, y = 26;
   doc.setTextColor(17, 17, 17); doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.text("MIKE GILLETT", M, y);
   doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(117, 117, 117); doc.text("Street and sports photographer, Barcelona", M, y + 6);
-  doc.setTextColor(17, 17, 17); doc.text("QUOTE", W - M, y - 6, {align: "right"}); doc.setFont("helvetica", "bold"); doc.text(quoteNo, W - M, y, {align: "right"});
+  doc.setTextColor(17, 17, 17); doc.text(state.mode === "pay" ? "PAYMENT REQUEST" : "QUOTE", W - M, y - 6, {align: "right"}); doc.setFont("helvetica", "bold"); doc.text(quoteNo, W - M, y, {align: "right"});
   doc.setFont("helvetica", "normal"); doc.text(new Date().toLocaleDateString("en-GB", {day: "numeric", month: "long", year: "numeric"}), W - M, y + 6, {align: "right"});
   doc.setDrawColor(17, 17, 17); doc.line(M, y + 12, W - M, y + 12);
   y = y + 24;
@@ -270,19 +314,19 @@ $("dl").addEventListener("click", function(){
   var from = ["Mike Gillett", "+34 610 050 195", "mike-gillett.com"];
   to.forEach(function(t, i){ doc.text(t, M, y + 6 + i * 5.5); }); from.forEach(function(t, i){ doc.text(t, 115, y + 6 + i * 5.5); });
   y += 6 + Math.max(to.length, from.length) * 5.5 + 10;
-  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(117, 117, 117); doc.text("BOOKING", M, y); y += 2;
+  doc.setFontSize(9); doc.setFont("helvetica", "bold"); doc.setTextColor(117, 117, 117); doc.text(state.mode === "pay" ? "PAYMENT" : "BOOKING", M, y); y += 2;
   doc.setDrawColor(200, 200, 200); doc.line(M, y, W - M, y); y += 6;
   doc.setFont("helvetica", "normal"); doc.setFontSize(11); doc.setTextColor(17, 17, 17);
   c.lines.forEach(function(r){ doc.text(r[0], M, y); doc.text(eurPdf(r[1]), W - M, y, {align: "right"}); y += 7; });
   y += 3;
   doc.setDrawColor(17, 17, 17); doc.line(110, y, W - M, y); y += 7;
   var tl = function(a, b, bold){ doc.setFont("helvetica", bold ? "bold" : "normal"); doc.text(a, 110, y); doc.text(b, W - M, y, {align: "right"}); y += 7; };
-  tl("Subtotal", eurPdf(c.net)); tl(state.who === "noneu" ? "IVA not applicable" : "IVA 21%", "+ " + eurPdf(c.iva));
-  if (state.who === "biz") tl("IRPF 15% withheld", "- " + eurPdf(c.irpf));
+  if (!c.pay){ tl("Subtotal", eurPdf(c.net)); tl(state.who === "noneu" ? "IVA not applicable" : "IVA 21%", "+ " + eurPdf(c.iva));
+  if (state.who === "biz") tl("IRPF 15% withheld", "- " + eurPdf(c.irpf)); }
   doc.setFontSize(13); tl("Due now", eurPdf(c.due), true); doc.setFontSize(10);
-  if (state.who === "noneu"){ doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90); doc.text("Service to a business established outside the EU: not subject to Spanish IVA.", M, y + 2); y += 7; doc.setTextColor(17, 17, 17); doc.setFontSize(10); }
+  if (!c.pay && state.who === "noneu"){ doc.setFont("helvetica", "normal"); doc.setFontSize(9); doc.setTextColor(90, 90, 90); doc.text("Service to a business established outside the EU: not subject to Spanish IVA.", M, y + 2); y += 7; doc.setTextColor(17, 17, 17); doc.setFontSize(10); }
   var job = [];
-  if (p.dates) job.push("Date(s): " + p.dates); if (p.loc) job.push("Where: " + p.loc); if (p.notes) job.push("Notes: " + p.notes);
+  if (state.mode !== "pay" && p.dates) job.push("Date(s): " + p.dates); if (state.mode !== "pay" && p.loc) job.push("Where: " + p.loc); if (p.notes) job.push("Notes: " + p.notes);
   if (job.length){
     y += 6; doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.text("THE JOB", M, y); y += 6; doc.setFont("helvetica", "normal");
     job.forEach(function(t){ doc.splitTextToSize(t, W - 2 * M).slice(0, 10).forEach(function(s){ doc.text(s, M, y); y += 5.5; }); });
@@ -294,16 +338,16 @@ $("dl").addEventListener("click", function(){
   if (!pay.length) pay.push("Payment details are sent with your booking confirmation.");
   pay.forEach(function(t){ doc.splitTextToSize(t, W - 2 * M).forEach(function(s){ doc.text(s, M, y); y += 5.5; }); });
   y += 6; doc.setFont("helvetica", "bold"); doc.text("TERMS", M, y); y += 6; doc.setFont("helvetica", "normal"); doc.setTextColor(90, 90, 90);
-  ["Paid in full before the job. Your dates are confirmed once payment arrives.",
+  (state.mode === "pay" ? ["An official invoice (factura) follows payment."] : ["Paid in full before the job. Your dates are confirmed once payment arrives.",
    "Cancellation: free up to 14 days before the job. Within 7 days, 50% is kept. Within 48 hours, no refund.",
    "A full day is up to 12 hours; anything over is billed at EUR 100 an hour.",
-   "An official invoice (factura) follows payment."].forEach(function(t){
+   "An official invoice (factura) follows payment."]).forEach(function(t){
     doc.splitTextToSize(t, W - 2 * M).forEach(function(s){ doc.text(s, M, y); y += 5; });
   });
   try {
-    doc.save("Mike-Gillett-Quote-" + quoteNo + ".pdf");
+    doc.save("Mike-Gillett-" + (state.mode === "pay" ? "Payment-" : "Quote-") + quoteNo + ".pdf");
     $("ref").textContent = quoteNo; $("sent").hidden = false;
-    $("dl").classList.remove("primary"); $("dl").classList.add("ghost"); $("dl").textContent = "Download again";
+    $("dl").classList.remove("primary"); $("dl").classList.add("ghost"); $("dl").textContent = "Download again"; downloadedOnce = true;
   } catch (e) { err.textContent = "The download didn't go through. Try again."; err.hidden = false; }
 });
 
